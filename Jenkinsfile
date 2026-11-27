@@ -8,26 +8,40 @@ pipeline {
 
     stages {
 
-        stage('Webhook Trigger Verification') {
+        stage('Checkout') {
             steps {
-                echo '======================================'
-                echo 'GitHub Webhook Triggered Successfully!'
-                echo '======================================'
+                echo 'Source code checkout completed'
             }
         }
 
-        stage('Check Repository') {
+        stage('Install Dependencies') {
             steps {
-                echo "Repository URL: ${env.GIT_URL}"
-                echo "Branch Name: ${env.GIT_BRANCH}"
-                echo "Commit ID: ${env.GIT_COMMIT}"
+                dir('frontend') {
+                    sh 'npm ci'
+                }
             }
         }
 
-        stage('Build Verification') {
+        stage('Build React Application') {
             steps {
-                echo 'Jenkins has successfully executed the pipeline.'
-                echo 'Webhook integration test completed.'
+                dir('frontend') {
+                    sh 'npm run build'
+                }
+            }
+        }
+
+        stage('Deploy to Nginx') {
+            steps {
+                sh '''
+                    sudo cp -r frontend/dist/. /var/www/employee-management/
+                    sudo systemctl reload nginx
+                '''
+            }
+        }
+
+        stage('Verify Deployment') {
+            steps {
+                sh 'curl -f http://localhost'
             }
         }
     }
